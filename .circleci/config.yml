@@ -20,14 +20,14 @@ jobs:
           key: "npm-packages"
           paths:
             - /src/node_modules
-      - run: npm lint
+      - run: npm run lint
   test:
     docker:
       - image: circleci/node:13.8.8
     steps:
       - checkout
       - restore_file
-      - run: npm test
+      - run: npm run test
   
   analyze:
     docker:
