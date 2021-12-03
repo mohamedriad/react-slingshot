@@ -1,0 +1,52 @@
+version: 2.1
+commands:
+  print_id:
+    parameters:
+      id:
+        type: string
+    steps:
+      - run: echo <<parameters.id>>
+jobs:
+  failure-job:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - run: return(1)
+      - run: 
+          command: echo "failedddaa"
+          when: on_fail
+  save_hello_world_file:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - run: echo "hello world" > ~/output.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - output.txt
+    
+  retrieve-hello-world-file:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run: cat ~/output.txt
+  use-command:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - print_id:
+          id: <<pipeline.id>>      
+          
+workflows:
+  save-retreive-workflow:
+    jobs:
+      - save_hello_world_file
+      - retrieve-hello-world-file:
+          requires: 
+            - save_hello_world_file
+      - use-command
+      - failure-job
+
+        
