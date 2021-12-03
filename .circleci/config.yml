@@ -1,52 +1,55 @@
 version: 2.1
 commands:
-  print_id:
-    parameters:
-      id:
-        type: string
+  restore_file:
     steps:
-      - run: echo <<parameters.id>>
+      - restore_cache:
+          keys:
+            - "npm-packages"
+      - run: npm i
+  install_npm:
+    steps:
+      - checkout
+      - run: npm i
 jobs:
-  failure-job:
+  build:
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - run: return(1)
-      - run: 
-          command: echo "failedddaa"
-          when: on_fail
-  save_hello_world_file:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - run: echo "hello world" > ~/output.txt
-      - persist_to_workspace:
-          root: ~/
+      - install_npm
+      - save_cache:
+          key: "npm-packages"
           paths:
-            - output.txt
-    
-  retrieve-hello-world-file:
+            - /src/node_modules
+      - run: npm lint
+  test:
+    docker:
+      - image: circleci/node:13.8.8
+    steps:
+      - checkout
+      - restore_file
+      - run: npm test
+  
+  analyze:
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - attach_workspace:
-          at: ~/
-      - run: cat ~/output.txt
-  use-command:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - print_id:
-          id: <<pipeline.id>>      
+      - checkout
+      - restore_file
+      - run: npm audit
+      - run:
+          command: echo "the analyzer failed"
+          when: on_fail     
           
 workflows:
-  save-retreive-workflow:
+  ci-pipline-workflow:
     jobs:
-      - save_hello_world_file
-      - retrieve-hello-world-file:
+      - build
+      - test:
           requires: 
-            - save_hello_world_file
-      - use-command
-      - failure-job
+            - build
+      - analyze:
+          requires:
+            - test
+
 
         
